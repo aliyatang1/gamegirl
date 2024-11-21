@@ -2,7 +2,7 @@
 This is for our multi-player game designed for embedded devices!
 
 ## Authors:
-Aliya Tang 
-Mila Lin Tabach 
+- Aliya Tang 
+- Mila Lin Tabach 
 
 ## Overview
