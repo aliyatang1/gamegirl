@@ -59,8 +59,10 @@ void setupESPNow() {
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
     Serial.println("ESP-NOW initialization failed");
+    delay(2000);  // Allow time for the message to print
     ESP.restart();
   }
+
   esp_now_register_send_cb(onDataSent);
   esp_now_register_recv_cb(onDataReceived);
 }
