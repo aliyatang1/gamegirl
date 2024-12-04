@@ -94,6 +94,7 @@ void textSetup() {
 
 String genCommand() {
   String verb = commandVerbs[random(ARRAY_SIZE)];
+  Serial.println("Randomly generated command: " + verb);
   return verb;
 }
 
@@ -104,19 +105,23 @@ void drawControls() {
   // Draw the button commands directly
   tft.fillRect(0, 115, 135, 50, TFT_BLACK);  // Clear previous commands area
   tft.setTextColor(TFT_GREEN);
-  tft.drawString("B1: " + cmd1, 0, 115, 2);
-  tft.drawString("B2: " + cmd2, 0, 175, 2);
+  tft.drawString(cmd1, 0, 115, 2);
+  tft.drawString(cmd2, 0, 175, 2);
 }
 
 void setup() {
   Serial.begin(115200);
-
+  randomSeed(analogRead(0));
   textSetup();
   buttonSetup();
   setupESPNow();
 }
 
 void loop() {
+  if (cmdRecvd == waitingCmd && redrawCmdRecvd) {
+    drawControls();
+    redrawCmdRecvd = false;
+  }
   // Check for button presses and compare with commands
   if (digitalRead(BUTTON_LEFT) == LOW && cmdRecvd == cmd1) {
     player1Progress += 10;
