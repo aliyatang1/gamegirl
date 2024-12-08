@@ -15,21 +15,19 @@ int progress = 0;
 int screenWidth;
 int screenHeight;
 
+bool gameStarted = false;  // To track if the game has started
+
 void setup() {
   Serial.begin(115200); 
   tft.init();
-  tft.setRotation(1); // Horizontal 
+  tft.setRotation(1); // landscape 
 
-  // Initialize screen dimensions after tft.init()
+  // initialize dimentions
   screenWidth = tft.width();
   screenHeight = tft.height();
 
   textSetUp();
   buttonSetUp();
-
-  // Display the first random command
-  currentCommand = genCommand();
-  displayCommand(currentCommand);
 }
 
 void textSetUp() {
@@ -43,19 +41,54 @@ void buttonSetUp() {
   pinMode(BUTTON_RIGHT, INPUT_PULLUP); 
 }
 
-void loop() {
-  if (digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left") {
-    Serial.println("Correct! Left pressed.");
-    delay(100);
-    progress += 1; // Increment progress
-    displayProgressBar(); // Update progress bar
-    refreshCommand();
-  } else if (digitalRead(BUTTON_RIGHT) == LOW && currentCommand == "Right") {
-    Serial.println("Correct! Right pressed.");
-    delay(100);
-    progress += 1; // Increment progress
-    displayProgressBar(); // Update progress bar
-    refreshCommand();
+void gameStart() {
+  tft.fillScreen(TFT_WHITE);
+  gameStarted = true;
+  progress = 0;
+
+  // Displaying a message 
+  displayCommand("Get ready...");
+  delay(1000);
+  displayCommand("3");
+  delay(500);
+  displayCommand("2");
+  delay(500);
+  displayCommand("1");
+  delay(500);
+  displayCommand("Race!");
+  currentCommand = genCommand();
+  displayCommand(currentCommand);
+}
+
+void game() {
+  // Check if both buttons are pressed to start the game
+  if (!gameStarted && digitalRead(BUTTON_LEFT) == LOW && digitalRead(BUTTON_RIGHT) == LOW) {
+    gameStart();
+  }
+
+  // If the game has started, process the commands
+  if (gameStarted) {
+    if (digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left") {
+      Serial.println("Left pressed.");
+      delay(100);
+      progress += 1; // Increment progress
+      if (progress >= 30) {
+        displaySuccessMessage();
+      } else {
+        displayProgressBar();
+        refreshCommand();
+      }
+    } else if (digitalRead(BUTTON_RIGHT) == LOW && currentCommand == "Right") {
+      Serial.println("Right pressed.");
+      delay(100);
+      progress += 1; // Increment progress
+      if (progress >= 30) {
+        displaySuccessMessage();
+      } else {
+        displayProgressBar();
+        refreshCommand();
+      }
+    }
   }
 }
 
@@ -67,7 +100,7 @@ String genCommand() {
 }
 
 void displayCommand(String command) {
-  int textWidth = tft.textWidth(command, 2); // Use font size 2
+  int textWidth = tft.textWidth(command, 2);  
   int textHeight = 16; // Approximate height of font size 2
 
   // Calculate centered coordinates
@@ -75,7 +108,7 @@ void displayCommand(String command) {
   int y = 3 * (screenHeight - textHeight) / 4;
 
   // Clear the area with a white rectangle
-  tft.fillRect(x-10, y, textWidth + 30, textHeight + 100, TFT_WHITE);
+  tft.fillRect(0, y,5000, textHeight + 100, TFT_WHITE);
 
   // Draw the string at the calculated position
   tft.drawString(command, x, y, 2); 
@@ -84,25 +117,57 @@ void displayCommand(String command) {
 
 void displayProgressBar() {
   int barWidth = screenWidth - 100; // Width of the progress bar
-  int barHeight = 20; // Height of the progress bar
-  int maxProgress = 30; // Maximum progress value (adjust as needed)
+  int barHeight = 20; 
+  int maxProgress = 50; 
 
   // Calculate the width of the progress bar based on the current progress
   int progressWidth = map(progress, 0, maxProgress, 0, barWidth);
 
-  // Calculate the position of the progress bar
+  // Position
   int x = (screenWidth - barWidth) / 2;
   int y = 30;
 
   // Clear the previous progress bar
   tft.fillRect(x, y, barWidth, barHeight, TFT_PINK);
-
   // Draw the new progress bar
   tft.fillRect(x, y, progressWidth, barHeight, TFT_RED);
-  Serial.println("Progress: " + String(progress));
+
+  // If you want to draw percentage: 
+ // String progressStr = String(map(progress, 0, maxProgress, 0, 100)) + "%";
+ // int textWidth = tft.textWidth(progressStr);
+ // int textHeight = 16;
+ // int textX = (screenWidth - textWidth) / 2;
+ // int textY = y + barHeight + 5;
+  
+//  tft.setTextColor(TFT_BLACK);
+//  tft.setTextSize(2);
+//  tft.drawString(progressStr, textX, textY);
+//  Serial.println("Progress: " + String(progress));
 }
 
 void refreshCommand() {
   currentCommand = genCommand();
   displayCommand(currentCommand);
+}
+
+void displaySuccessMessage() {
+  tft.fillScreen(TFT_GREEN);  // Clear the screen
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextSize(3);
+  tft.setCursor(50, screenHeight / 2);
+  tft.println("Success");
+  delay(5000);  // Wait for the message to show for 5 seconds
+  resetGame();
+}
+
+void resetGame() {
+  gameStarted = false;
+  progress = 0;
+  displayCommand("Press both buttons to start");
+}
+
+
+
+void loop() {
+  game();  // Call the game loop
 }
