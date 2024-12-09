@@ -5,6 +5,7 @@ Tasks to be implemented:
 
 1.5 making it multiplayer through the ESP-Now - Good (?) need to test!
 2. Home Screen - Good!
+4. Add condition where if two buttons are pressed simultaneously, nothing happens - Good!
 **/
 
 #include <TFT_eSPI.h>  
@@ -120,7 +121,8 @@ void game() {
 
   // If the game has started, process the commands
   if (gameStarted) {
-    if (digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left") {
+    // the additional BUTTON_RIGHT != LOW prevents the individual from cheating on the game by pressing two buttons simultaneously
+    if ((digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left")&& digitalRead(BUTTON_RIGHT) != LOW) {
       Serial.println("Left pressed.");
       delay(100);
       progress += 1; // Increment progress
@@ -132,7 +134,8 @@ void game() {
         displayProgressBar();
         refreshCommand();
       }
-    } else if (digitalRead(BUTTON_RIGHT) == LOW && currentCommand == "Right") {
+    // the additional BUTTON_LEFT != LOW prevents the individual from cheating on the game by pressing two buttons simultaneously
+    } else if ((digitalRead(BUTTON_RIGHT) == LOW && currentCommand == "Right") && digitalRead(BUTTON_LEFT) != LOW) {
       Serial.println("Right pressed.");
       delay(100);
       progress += 1; // Increment progress
