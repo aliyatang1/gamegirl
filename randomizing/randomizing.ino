@@ -1,5 +1,15 @@
+/**
+Tasks to be implemented:
+1.5 making it multiplayer through the ESP-Now
+3. Graphics
+ 
+2. Home Screen - Good!
+**/
+
 #include <TFT_eSPI.h>  
 #include <SPI.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
 TFT_eSPI tft = TFT_eSPI(); 
 
@@ -25,9 +35,10 @@ void setup() {
   // initialize dimentions
   screenWidth = tft.width();
   screenHeight = tft.height();
-
+  
   textSetUp();
   buttonSetUp();
+  espnowSetup();
 }
 
 void textSetUp() {
@@ -41,11 +52,38 @@ void buttonSetUp() {
   pinMode(BUTTON_RIGHT, INPUT_PULLUP); 
 }
 
+void espnowSetup() {
+  // Set ESP32 in STA mode to begin with
+  delay(500);
+  WiFi.mode(WIFI_STA);
+  Serial.println("ESP-NOW Broadcast Demo");
+
+  // Print MAC address
+  Serial.print("MAC Address: ");
+  Serial.println(WiFi.macAddress());
+
+  // Disconnect from WiFi
+  WiFi.disconnect();
+
+  // Initialize ESP-NOW
+  if (esp_now_init() == ESP_OK) {
+    Serial.println("ESP-NOW Init Success");
+    //Handles incoming messages via ESP-NOW
+    //esp_now_register_recv_cb(receiveCallback);
+
+    //Sends messages via ESP-NOW
+    //esp_now_register_send_cb(sentCallback);
+  } else {
+    Serial.println("ESP-NOW Init Failed");
+    delay(3000);
+    ESP.restart();
+  }
+}
+
 void gameStart() {
-  tft.fillScreen(TFT_WHITE);
   gameStarted = true;
   progress = 0;
-
+  tft.setTextSize(2); 
   // Displaying a message 
   displayCommand("Get ready...");
   delay(1000);
@@ -61,10 +99,16 @@ void gameStart() {
 }
 
 void game() {
-  // Check if both buttons are pressed to start the game
-  if (!gameStarted && digitalRead(BUTTON_LEFT) == LOW && digitalRead(BUTTON_RIGHT) == LOW) {
-    gameStart();
+  if(!gameStarted){
+    // Check if both buttons are pressed to start the game
+    tft.setTextSize(1.75); 
+    displayCommand("Press both buttons to start");
+    delay(1000);
+    if (digitalRead(BUTTON_LEFT) == LOW && digitalRead(BUTTON_RIGHT) == LOW) {
+      gameStart();
+    }
   }
+  
 
   // If the game has started, process the commands
   if (gameStarted) {
@@ -156,16 +200,18 @@ void displaySuccessMessage() {
   tft.setTextSize(3);
   tft.setCursor(50, screenHeight / 2);
   tft.println("Success");
-  delay(5000);  // Wait for the message to show for 5 seconds
+  delay(3000);  // Wait for the message to show for 3 seconds
   resetGame();
 }
 
 void resetGame() {
   gameStarted = false;
   progress = 0;
-  displayCommand("Press both buttons to start");
+  tft.fillScreen(TFT_WHITE);
+  tft.setTextSize(2); 
+  tft.setTextColor(TFT_RED);
+  tft.println("Press both buttons to start");
 }
-
 
 
 void loop() {
