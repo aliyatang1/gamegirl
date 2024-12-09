@@ -18,8 +18,8 @@ TFT_eSPI tft = TFT_eSPI();
 const String commandVerbs[2] = {"Left", "Right"};
 
 // Define button pins
-#define BUTTON_LEFT 0
-#define BUTTON_RIGHT 35
+#define BUTTON_LEFT 17
+#define BUTTON_RIGHT 33
 
 String currentCommand = ""; 
 int progress = 0;
