@@ -212,25 +212,24 @@ void sentCallback(const uint8_t *macAddr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void receiveCallback(const esp_now_recv_info_t *info, const uint8_t *data, int dataLen) {
-  // Convert received data to a string
-  String receivedMessage = String((char *)data);
-  if (receivedMessage == "DISCOVERY") {
-    Serial.println("Discovery message received!");
-
-    // Respond with this device's MAC address
-    uint8_t myMacAddress[6];
-    WiFi.macAddress(myMacAddress);
-    esp_now_send(info->src_addr, myMacAddress, 6);
-  } else {
-    // Handle other game-related messages
-    int otherPlayerProgress = data[0];
-    Serial.printf("Other Player Progress: %d\n", otherPlayerProgress);
-
-    if (otherPlayerProgress >= 30) {
-      displayFailedMessage();  // The other player won
+    Serial.printf("Received data: ");
+    for (int i = 0; i < dataLen; i++) {
+        Serial.printf("%02X ", data[i]);
     }
-  }
+    Serial.println();
+
+    if (dataLen == 1) { // Ensure expected data length
+        int otherPlayerProgress = data[0];
+        Serial.printf("Other Player Progress: %d\n", otherPlayerProgress);
+
+        if (otherPlayerProgress >= 30) {
+            displayFailedMessage();  // The other player won
+        }
+    } else {
+        Serial.println("Unexpected data length");
+    }
 }
+
 
 // I asked ChatGPT to help with this specific part because I'm not sure what to do about the peer callback -> modified it into the dicovery broadcast message
 void broadcastMessage() {
