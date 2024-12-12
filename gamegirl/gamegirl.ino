@@ -1,14 +1,10 @@
 /**
-Tasks to be implemented:
-
-3. Graphics
-
-1.5 making it multiplayer through the ESP-Now - Good (?) need to test!
-2. Home Screen - Good!
-4. Add condition where if two buttons are pressed simultaneously, nothing happens - Good!
+What we need to finish:
+1. need to work on the graphics
+2. making sure text size is good
 **/
 
-#include <TFT_eSPI.h>  
+#include <TFT_eSPI.h>
 #include <SPI.h>
 #include <esp_now.h>
 #include <WiFi.h>
@@ -23,19 +19,18 @@ const String commandVerbs[2] = {"Left", "Right"};
 
 String currentCommand = ""; 
 int progress = 0;
-//uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 int screenWidth;
 int screenHeight;
 
-bool gameStarted = false;  // To track if the game has started
+bool gameStarted = false; 
 
 void setup() {
   Serial.begin(115200); 
   tft.init();
-  tft.setRotation(1); // landscape 
+  tft.setRotation(1); 
 
-  // initialize dimentions
   screenWidth = tft.width();
   screenHeight = tft.height();
   
@@ -56,7 +51,6 @@ void buttonSetUp() {
 }
 
 void espnowSetup() {
-  // Set ESP32 in STA mode to begin with
   WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);
   delay(100);
@@ -66,34 +60,38 @@ void espnowSetup() {
   Serial.print("MAC Address: ");
   String mac = WiFi.macAddress();
   if (mac == "00:00:00:00:00:00") {
-      Serial.println("Error: Unable to retrieve MAC Address. Retrying...");
-      delay(1000);
-      ESP.restart();  // Restart the ESP32 to attempt reinitialization
+    Serial.println("Error: Unable to retrieve MAC Address. Retrying...");
+    delay(1000);
+    ESP.restart();  
   } else {
-      Serial.println("MAC Address: " + mac);
+    Serial.println(mac);
   }
 
-
-  // Disconnect from WiFi
-  WiFi.disconnect();
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("ESP-NOW Initialization Failed. Restarting...");
-    delay(3000);
-    ESP.restart();  // Restart the ESP32
-  }
   // Initialize ESP-NOW
   if (esp_now_init() == ESP_OK) {
     Serial.println("ESP-NOW Init Success");
-    //Handles incoming messages via ESP-NOW
     esp_now_register_recv_cb(receiveCallback);
-
-    //Sends messages via ESP-NOW
     esp_now_register_send_cb(sentCallback);
-    broadcastMessage();
+    addBroadcastPeer();
   } else {
-    Serial.println("ESP-NOW Init Failed");
+    Serial.println("ESP-NOW Init Failed. Restarting...");
     delay(3000);
-    ESP.restart();
+    ESP.restart();  
+  }
+}
+
+void addBroadcastPeer() {
+  esp_now_peer_info_t peerInfo = {};
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false; 
+
+  if (!esp_now_is_peer_exist(broadcastAddress)) {
+    if (esp_now_add_peer(&peerInfo) == ESP_OK) {
+      Serial.println("Broadcast peer added");
+    } else {
+      Serial.println("Failed to add broadcast peer");
+    }
   }
 }
 
@@ -101,7 +99,6 @@ void gameStart() {
   gameStarted = true;
   progress = 0;
   tft.setTextSize(2); 
-  // Displaying a message 
   displayCommand("Get ready...");
   delay(1000);
   displayCommand("3");
@@ -118,7 +115,6 @@ void gameStart() {
 void game() {
   // Check if both buttons are pressed to start the game
   tft.setTextSize(1.75); 
-  //prevent text flickering
   if (!gameStarted) {
     static bool messageDisplayed = false;
     if (!messageDisplayed) {
@@ -127,19 +123,17 @@ void game() {
       messageDisplayed = true;
     }
     if (digitalRead(BUTTON_LEFT) == LOW && digitalRead(BUTTON_RIGHT) == LOW) {
-        messageDisplayed = false;  // Reset for future use
-        gameStart();
+      messageDisplayed = false;  
+      gameStart();
     }
   }
 
   // If the game has started, process the commands
   if (gameStarted) {
-    // the additional BUTTON_RIGHT != LOW prevents the individual from cheating on the game by pressing two buttons simultaneously
-    if ((digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left")&& digitalRead(BUTTON_RIGHT) != LOW) {
+    if ((digitalRead(BUTTON_LEFT) == LOW && currentCommand == "Left") && digitalRead(BUTTON_RIGHT) != LOW) {
       Serial.println("Left pressed.");
       delay(100);
-      progress += 1; // Increment progress
-      //sending the other player that the other player won
+      progress += 1; 
       sendProgress();
       if (progress >= 30) {
         displaySuccessMessage();
@@ -147,11 +141,10 @@ void game() {
         displayProgressBar();
         refreshCommand();
       }
-    // the additional BUTTON_LEFT != LOW prevents the individual from cheating on the game by pressing two buttons simultaneously
     } else if ((digitalRead(BUTTON_RIGHT) == LOW && currentCommand == "Right") && digitalRead(BUTTON_LEFT) != LOW) {
       Serial.println("Right pressed.");
       delay(100);
-      progress += 1; // Increment progress
+      progress += 1; 
       if (progress >= 30) {
         displaySuccessMessage();
       } else {
@@ -163,60 +156,34 @@ void game() {
 }
 
 String genCommand() {
-  tft.setTextSize(2); 
-  // Generates random command 
-  int randInt = random(2);
-  Serial.println("Random number: " + String(randInt));
-  return commandVerbs[randInt];
+  return commandVerbs[random(2)];
 }
 
 void displayCommand(String command) {
   int textWidth = tft.textWidth(command, 2);  
-  int textHeight = 16; // Approximate height of font size 2
+  int textHeight = 16; 
 
-  // Calculate centered coordinates
   int x = (screenWidth - textWidth) / 2;
   int y = 3 * (screenHeight - textHeight) / 4;
-
-  // Clear the area with a white rectangle
-  tft.fillRect(0, y,5000, textHeight + 100, TFT_WHITE);
-
-  // Draw the string at the calculated position
+  tft.fillRect(0, y, screenWidth, textHeight + 20, TFT_WHITE);
   tft.drawString(command, x, y, 2); 
   Serial.println("Command: " + command); 
 }
 
 void displayProgressBar() {
-  int barWidth = screenWidth - 100; // Width of the progress bar
+  int barWidth = screenWidth - 100; 
   int barHeight = 20; 
-  int maxProgress = 50; 
-
-  // Calculate the width of the progress bar based on the current progress
+  int maxProgress = 30; 
   int progressWidth = map(progress, 0, maxProgress, 0, barWidth);
 
-  // Position
   int x = (screenWidth - barWidth) / 2;
   int y = 30;
 
-  // Clear the previous progress bar
   tft.fillRect(x, y, barWidth, barHeight, TFT_PINK);
-  // Draw the new progress bar
-  tft.fillRect(x, y, progressWidth, barHeight, TFT_RED);
-  //get the progress -> need to send it to the other ESP-32 to see if they already got to 100% 
-  String progressStr = String(map(progress, 0, maxProgress, 0, 100)) + "%";
 
-  // If you want to draw percentage: 
- // 
- // int textWidth = tft.textWidth(progressStr);
- // int textHeight = 16;
- // int textX = (screenWidth - textWidth) / 2;
- // int textY = y + barHeight + 5;
-  
-//  tft.setTextColor(TFT_BLACK);
-//  tft.setTextSize(2);
-//  tft.drawString(progressStr, textX, textY);
-//  Serial.println("Progress: " + String(progress));
+  tft.fillRect(x, y, progressWidth, barHeight, TFT_RED);
 }
+
 // Callback when data is sent
 void sentCallback(const uint8_t *macAddr, esp_now_send_status_t status) {
   Serial.print("Last Packet Send Status: ");
@@ -225,54 +192,54 @@ void sentCallback(const uint8_t *macAddr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void receiveCallback(const esp_now_recv_info_t *info, const uint8_t *data, int dataLen) {
-    Serial.printf("Received data: ");
-    for (int i = 0; i < dataLen; i++) {
-        Serial.printf("%02X ", data[i]);
-    }
-    Serial.println();
+  Serial.printf("Received data: ");
+  for (int i = 0; i < dataLen; i++) {
+    Serial.printf("%02X ", data[i]);
+  }
+  Serial.println();
 
-    if (dataLen == 1) { // Ensure expected data length
-        int otherPlayerProgress = data[0];
-        Serial.printf("Other Player Progress: %d\n", otherPlayerProgress);
+  if (dataLen == 1) { 
+    int otherPlayerProgress = data[0];
+    Serial.printf("Other Player Progress: %d\n", otherPlayerProgress);
 
-        if (otherPlayerProgress >= 30) {
-            displayFailedMessage();  // The other player won
-        }
-    } else {
-        Serial.println("Unexpected data length");
+    if (otherPlayerProgress >= 28) {
+      displayFailedMessage();  
     }
+  } else {
+    Serial.println("Unexpected data length");
+  }
 }
-
-
 
 void refreshCommand() {
   currentCommand = genCommand();
   displayCommand(currentCommand);
 }
+
 void sendProgress() {
-  uint8_t progressData = progress;  // Convert progress to a single byte
+  uint8_t progressData = progress;  
   esp_now_send(broadcastAddress, &progressData, sizeof(progressData));
 }
 
 void displaySuccessMessage() {
-  tft.fillScreen(TFT_GREEN);  // Clear the screen
+  textSetUp();
+  tft.fillScreen(TFT_GREEN);  
   tft.setTextColor(TFT_WHITE);
-  tft.setTextSize(3);
   tft.setCursor(50, screenHeight / 2);
   tft.println("Success");
-  delay(3000);  // Wait for the message to show for 3 seconds
+  delay(3000);  
   resetGame();
 }
-void displayFailedMessage(){
-  tft.fillScreen(TFT_RED);  // Clear the screen
+
+void displayFailedMessage() {
+  textSetUp();
+  tft.fillScreen(TFT_RED);  
   tft.setTextColor(TFT_WHITE);
-  tft.setTextSize(3);
   tft.setCursor(50, screenHeight / 2);
   tft.println("Failed");
-  delay(3000);  // Wait for the message to show for 3 seconds
+  delay(3000);  
   resetGame();
-
 }
+
 void resetGame() {
   gameStarted = false;
   progress = 0;
@@ -282,7 +249,6 @@ void resetGame() {
   tft.println("Press both buttons to start");
 }
 
-
 void loop() {
-  game();  // Call the game loop
+  game();  
 }
