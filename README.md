@@ -19,7 +19,7 @@ Aliya Tang and Mila Lin Tabach
 Our code sets up a multiplayer game using ESP-NOW with a TFT display on ESP32. The game revolves around pressing buttons (left and right) to match randomly generated commands like "Left" or "Right." Players compete to reach a progress goal (30) first. If either player reaches a specific threshold (28 or more), they win and is shown a “Success” message while the other is shown a "Failed" message. The codebase includes different components including ESP-NOW communication, progress bar, and the gaming logic. 
 
 ### Libraries to Download:
-- TFT_eSPI by Bodmer
+- TFT_eSPI 
 - SPI
 - esp_now
 - WiFi
