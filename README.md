@@ -15,8 +15,10 @@ Aliya Tang and Mila Lin Tabach
 
 ## Demo
 
-<img src="solo_demo.gif" alt="Solo Demo" width="400">
-<img src="duo_demo.gif" alt="Duo Demo" width="400">
+<div style="display: flex; align-items: center; gap: 10px;">
+  <img src="solo_demo.gif" alt="Solo Demo" width="300">
+  <img src="duo_demo.gif" alt="Duo Demo" width="300">
+</div>
 
 
 ## Overview
