@@ -1,9 +1,3 @@
-/**
-What we need to finish:
-1. need to work on the graphics
-2. making sure text size is good
-**/
-
 #include <TFT_eSPI.h>
 #include <SPI.h>
 #include <esp_now.h>
